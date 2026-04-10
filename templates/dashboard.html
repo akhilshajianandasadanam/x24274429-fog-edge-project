@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disaster Early Warning System | Professional Monitoring Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(rgba(255,255,255,0.95), rgba(255,255,255,0.95)),
+                        url('https://images.unsplash.com/photo-1587923623987-c7e408f1bd7c?w=1920&h=1080&fit=crop');
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
+            min-height: 100vh;
+        }
+
+        /* Navbar */
+        .navbar {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white !important;
+        }
+
+        .navbar-brand i {
+            margin-right: 10px;
+            color: #00d4ff;
+        }
+
+        .status-badge {
+            background: rgba(255,255,255,0.1);
+            padding: 8px 20px;
+            border-radius: 30px;
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .live-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #00ff88;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Main Content - Full Screen */
+        .main-wrapper {
+            margin-top: 70px;
+            padding: 20px 30px;
+        }
+
+        /* Header Section */
+        .page-header {
+            margin-bottom: 30px;
+            padding: 20px 0;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 8px;
+        }
+
+        .page-header p {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 20px 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border: 1px solid #eef2f7;
+        }
+
+        .btn-custom {
+            padding: 10px 25px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+
+        .btn-custom i {
+            margin-right: 8px;
+        }
+
+        .btn-start {
+            background: #00b894;
+            color: white;
+            border: none;
+        }
+
+        .btn-start:hover {
+            background: #00a884;
+            transform: translateY(-2px);
+        }
+
+        .btn-stop {
+            background: #e74c3c;
+            color: white;
+            border: none;
+        }
+
+        .btn-stop:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        .btn-delete {
+            background: #f39c12;
+            color: white;
+            border: none;
+        }
+
+        .btn-delete:hover {
+            background: #e67e22;
+            transform: translateY(-2px);
+        }
+
+        .btn-refresh {
+            background: #3498db;
+            color: white;
+            border: none;
+        }
+
+        .btn-refresh:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border: 1px solid #eef2f7;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+        }
+
+        .kpi-card.temp::before { background: #e74c3c; }
+        .kpi-card.humidity::before { background: #3498db; }
+        .kpi-card.rainfall::before { background: #2ecc71; }
+        .kpi-card.water::before { background: #1abc9c; }
+        .kpi-card.seismic::before { background: #f39c12; }
+        .kpi-card.wind::before { background: #9b59b6; }
+
+        .kpi-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .kpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .kpi-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .kpi-icon {
+            font-size: 1.5rem;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .kpi-trend {
+            font-size: 0.7rem;
+            color: #95a5a6;
+        }
+
+        /* Charts Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border: 1px solid #eef2f7;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eef2f7;
+        }
+
+        .chart-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        .chart-header i {
+            color: #3498db;
+            margin-right: 8px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        /* Data Table */
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border: 1px solid #eef2f7;
+            margin-bottom: 30px;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eef2f7;
+        }
+
+        .table-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        .search-box {
+            padding: 8px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            width: 250px;
+            font-size: 0.85rem;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table thead th {
+            background: #f8f9fa;
+            padding: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #2c3e50;
+            border-bottom: 2px solid #eef2f7;
+        }
+
+        .data-table tbody td {
+            padding: 12px;
+            font-size: 0.85rem;
+            color: #555;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .data-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .alert-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: #fee;
+            color: #e74c3c;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-wrapper {
+                padding: 15px;
+            }
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-exclamation-triangle"></i>
+                Disaster Early Warning System
+            </a>
+            <div class="status-badge">
+                <span class="live-dot"></span>
+                <span id="simulationStatus">Stopped</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-wrapper">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>Disaster Monitoring Dashboard</h1>
+            <p>Real-time environmental monitoring and early warning detection system</p>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="d-flex flex-wrap gap-2">
+                <button class="btn-custom btn-start" onclick="startSimulation()">
+                    <i class="fas fa-play"></i> Start Simulation
+                </button>
+                <button class="btn-custom btn-stop" onclick="stopSimulation()">
+                    <i class="fas fa-stop"></i> Stop Simulation
+                </button>
+                <button class="btn-custom btn-delete" onclick="deleteRecords()">
+                    <i class="fas fa-trash-alt"></i> Delete Records
+                </button>
+                <button class="btn-custom btn-refresh" onclick="refreshData()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card temp">
+                <div class="kpi-header">
+                    <span class="kpi-title">Temperature</span>
+                    <i class="fas fa-thermometer-half kpi-icon" style="color:#e74c3c;"></i>
+                </div>
+                <div class="kpi-value" id="tempValue">--°C</div>
+                <div class="kpi-trend">Wildfire risk > 50°C</div>
+            </div>
+            <div class="kpi-card humidity">
+                <div class="kpi-header">
+                    <span class="kpi-title">Humidity</span>
+                    <i class="fas fa-tint kpi-icon" style="color:#3498db;"></i>
+                </div>
+                <div class="kpi-value" id="humidityValue">--%</div>
+                <div class="kpi-trend">Storm risk > 90%</div>
+            </div>
+            <div class="kpi-card rainfall">
+                <div class="kpi-header">
+                    <span class="kpi-title">Rainfall</span>
+                    <i class="fas fa-cloud-rain kpi-icon" style="color:#2ecc71;"></i>
+                </div>
+                <div class="kpi-value" id="rainfallValue">--mm</div>
+                <div class="kpi-trend">Flood risk > 120mm</div>
+            </div>
+            <div class="kpi-card water">
+                <div class="kpi-header">
+                    <span class="kpi-title">Water Level</span>
+                    <i class="fas fa-water kpi-icon" style="color:#1abc9c;"></i>
+                </div>
+                <div class="kpi-value" id="waterValue">--m</div>
+                <div class="kpi-trend">Critical > 10m</div>
+            </div>
+            <div class="kpi-card seismic">
+                <div class="kpi-header">
+                    <span class="kpi-title">Seismic Activity</span>
+                    <i class="fas fa-waveform kpi-icon" style="color:#f39c12;"></i>
+                </div>
+                <div class="kpi-value" id="seismicValue">--</div>
+                <div class="kpi-trend">Earthquake risk > 6</div>
+            </div>
+            <div class="kpi-card wind">
+                <div class="kpi-header">
+                    <span class="kpi-title">Wind Speed</span>
+                    <i class="fas fa-wind kpi-icon" style="color:#9b59b6;"></i>
+                </div>
+                <div class="kpi-value" id="windValue">--km/h</div>
+                <div class="kpi-trend">Storm warning > 100km/h</div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3><i class="fas fa-chart-line"></i> Temperature Trend</h3>
+                    <span class="badge bg-danger">Alert > 50°C</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="tempChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3><i class="fas fa-chart-line"></i> Humidity Trend</h3>
+                    <span class="badge bg-info">Alert > 90%</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="humidityChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3><i class="fas fa-chart-line"></i> Rainfall Trend</h3>
+                    <span class="badge bg-success">Alert > 120mm</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="rainfallChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3><i class="fas fa-chart-line"></i> Water Level Trend</h3>
+                    <span class="badge bg-warning">Alert > 10m</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="waterChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3><i class="fas fa-chart-line"></i> Seismic Activity Trend</h3>
+                    <span class="badge bg-warning">Alert > 6</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="seismicChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3><i class="fas fa-chart-line"></i> Wind Speed Trend</h3>
+                    <span class="badge bg-purple">Alert > 100km/h</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="windChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="table-container">
+            <div class="table-header">
+                <h3><i class="fas fa-table"></i> Recent Sensor Readings</h3>
+                <input type="text" id="searchInput" class="search-box" placeholder="Search records...">
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Temp (°C)</th>
+                            <th>Humidity (%)</th>
+                            <th>Rainfall (mm)</th>
+                            <th>Water Level (m)</th>
+                            <th>Seismic</th>
+                            <th>Wind (km/h)</th>
+                            <th>Alerts</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr><td colspan="8" class="text-center">Loading data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chart instances
+        let tempChart, humidityChart, rainfallChart, waterChart, seismicChart, windChart;
+        
+        // Initialize all charts
+        function initCharts() {
+            const chartConfig = {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { position: 'top' } }
+            };
+            
+            tempChart = new Chart(document.getElementById('tempChart'), {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: 'Temperature (°C)', data: [], borderColor: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.1)', tension: 0.4, fill: true }] },
+                options: chartConfig
+            });
+            
+            humidityChart = new Chart(document.getElementById('humidityChart'), {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: 'Humidity (%)', data: [], borderColor: '#3498db', backgroundColor: 'rgba(52,152,219,0.1)', tension: 0.4, fill: true }] },
+                options: chartConfig
+            });
+            
+            rainfallChart = new Chart(document.getElementById('rainfallChart'), {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: 'Rainfall (mm)', data: [], borderColor: '#2ecc71', backgroundColor: 'rgba(46,204,113,0.1)', tension: 0.4, fill: true }] },
+                options: chartConfig
+            });
+            
+            waterChart = new Chart(document.getElementById('waterChart'), {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: 'Water Level (m)', data: [], borderColor: '#1abc9c', backgroundColor: 'rgba(26,188,156,0.1)', tension: 0.4, fill: true }] },
+                options: chartConfig
+            });
+            
+            seismicChart = new Chart(document.getElementById('seismicChart'), {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: 'Seismic Activity', data: [], borderColor: '#f39c12', backgroundColor: 'rgba(243,156,18,0.1)', tension: 0.4, fill: true }] },
+                options: chartConfig
+            });
+            
+            windChart = new Chart(document.getElementById('windChart'), {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: 'Wind Speed (km/h)', data: [], borderColor: '#9b59b6', backgroundColor: 'rgba(155,89,182,0.1)', tension: 0.4, fill: true }] },
+                options: chartConfig
+            });
+        }
+        
+        // Update dashboard with data
+        function updateDashboard(data) {
+            if (!data || data.length === 0) return;
+            
+            const latest = data[0];
+            
+            // Update KPI values
+            $('#tempValue').text(`${latest.temperature || 0}°C`);
+            $('#humidityValue').text(`${latest.humidity || 0}%`);
+            $('#rainfallValue').text(`${latest.rainfall || 0}mm`);
+            $('#waterValue').text(`${latest.water_level || 0}m`);
+            $('#seismicValue').text(latest.seismic || 0);
+            $('#windValue').text(`${latest.wind_speed || 0}km/h`);
+            
+            // Update all charts
+            const last20 = data.slice(0, 20).reverse();
+            const labels = last20.map(d => new Date(d.timestamp).toLocaleTimeString());
+            
+            tempChart.data.labels = labels;
+            tempChart.data.datasets[0].data = last20.map(d => d.temperature);
+            tempChart.update();
+            
+            humidityChart.data.labels = labels;
+            humidityChart.data.datasets[0].data = last20.map(d => d.humidity);
+            humidityChart.update();
+            
+            rainfallChart.data.labels = labels;
+            rainfallChart.data.datasets[0].data = last20.map(d => d.rainfall);
+            rainfallChart.update();
+            
+            waterChart.data.labels = labels;
+            waterChart.data.datasets[0].data = last20.map(d => d.water_level);
+            waterChart.update();
+            
+            seismicChart.data.labels = labels;
+            seismicChart.data.datasets[0].data = last20.map(d => d.seismic);
+            seismicChart.update();
+            
+            windChart.data.labels = labels;
+            windChart.data.datasets[0].data = last20.map(d => d.wind_speed);
+            windChart.update();
+            
+            // Update table
+            updateTable(data);
+        }
+        
+        // Update data table
+        function updateTable(data) {
+            const tbody = $('#tableBody');
+            tbody.empty();
+            
+            data.slice(0, 50).forEach(record => {
+                const alerts = record.alerts || [];
+                const alertHtml = alerts.length > 0 ? 
+                    `<span class="alert-badge">${alerts[0].substring(0, 30)}${alerts[0].length > 30 ? '...' : ''}</span>` : 
+                    '<span class="text-muted">-</span>';
+                
+                tbody.append(`
+                    <tr>
+                        <td>${new Date(record.timestamp).toLocaleString()}</td>
+                        <td>${record.temperature || 0}°C</td>
+                        <td>${record.humidity || 0}%</td>
+                        <td>${record.rainfall || 0}mm</td>
+                        <td>${record.water_level || 0}m</td>
+                        <td>${record.seismic || 0}</td>
+                        <td>${record.wind_speed || 0}km/h</td>
+                        <td>${alertHtml}</td>
+                     </tr>
+                `);
+            });
+        }
+        
+        // Fetch data from API
+        function fetchData() {
+            $.ajax({
+                url: '/api/data',
+                method: 'GET',
+                success: function(data) {
+                    updateDashboard(data);
+                },
+                error: function() {
+                    console.error('Error fetching data');
+                }
+            });
+        }
+        
+        // Control functions
+        function startSimulation() {
+            $.ajax({
+                url: '/api/start-simulation',
+                method: 'POST',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        $('#simulationStatus').text('Running').css('background', 'rgba(0,255,136,0.2)');
+                        showToast('Simulation Started', 'success');
+                    }
+                }
+            });
+        }
+        
+        function stopSimulation() {
+            $.ajax({
+                url: '/api/stop-simulation',
+                method: 'POST',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        $('#simulationStatus').text('Stopped').css('background', 'rgba(255,255,255,0.1)');
+                        showToast('Simulation Stopped', 'info');
+                    }
+                }
+            });
+        }
+        
+        function deleteRecords() {
+            if (confirm('⚠️ WARNING: This will delete all records. This action cannot be undone!')) {
+                $.ajax({
+                    url: '/api/delete-records',
+                    method: 'DELETE',
+                    success: function(response) {
+                        showToast('All records deleted successfully', 'warning');
+                        setTimeout(fetchData, 1000);
+                    }
+                });
+            }
+        }
+        
+        function refreshData() {
+            fetchData();
+            showToast('Data refreshed', 'info');
+        }
+        
+        function showToast(message, type) {
+            // Simple toast notification
+            const toast = $(`<div class="alert alert-${type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info'} alert-dismissible fade show" style="position: fixed; top: 80px; right: 20px; z-index: 9999;">${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`);
+            $('body').append(toast);
+            setTimeout(() => toast.fadeOut(() => toast.remove()), 3000);
+        }
+        
+        function checkSimulationStatus() {
+            $.ajax({
+                url: '/api/simulation-status',
+                method: 'GET',
+                success: function(response) {
+                    if (response.is_running) {
+                        $('#simulationStatus').text('Running').css('background', 'rgba(0,255,136,0.2)');
+                    } else {
+                        $('#simulationStatus').text('Stopped').css('background', 'rgba(255,255,255,0.1)');
+                    }
+                }
+            });
+        }
+        
+        // Search functionality
+        $('#searchInput').on('keyup', function() {
+            const value = $(this).val().toLowerCase();
+            $('#tableBody tr').filter(function() {
+                $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+            });
+        });
+        
+        // Initialize on load
+        $(document).ready(function() {
+            initCharts();
+            fetchData();
+            checkSimulationStatus();
+            setInterval(fetchData, 5000);
+            setInterval(checkSimulationStatus, 10000);
+        });
+        
+        // Add a button to manually trigger alert check
+function triggerAlertCheck() {
+    $.ajax({
+        url: '/api/check-alerts',
+        method: 'POST',
+        success: function(response) {
+            console.log('Alert check completed:', response);
+            if (response.alert_count > 0) {
+                showNotification(`${response.alert_count} alert(s) triggered and email sent`, 'warning');
+            } else {
+                showNotification('No alerts triggered', 'info');
+            }
+        }
+    });
+}
+
+// Add this button to your control panel
+// <button class="btn-control btn-warning" onclick="triggerAlertCheck()">Check Alerts</button>
+
+function fetchData() {
+    $.ajax({
+        url: '/api/data',
+        method: 'GET',
+        success: function(data) {
+            updateDashboard(data);
+            updateAlerts(data);
+            
+            // Automatically check for alerts after fetching data
+            $.ajax({
+                url: '/api/check-alerts',
+                method: 'POST',
+                success: function(response) {
+                    if (response.alert_count > 0) {
+                        console.log('Alerts triggered:', response.alerts_triggered);
+                    }
+                }
+            });
+        }
+    });
+}
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
