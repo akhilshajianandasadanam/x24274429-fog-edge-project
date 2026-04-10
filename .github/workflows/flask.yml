@@ -59,7 +59,7 @@ jobs:
 
   deploy_fog_flask:
     runs-on: ubuntu-latest
-    needs: build_stage
+    needs: build_fog_flask
   
     steps:
       - name: Download Deployment Package
