@@ -9,6 +9,9 @@ import requests
 from datetime import datetime
 import paho.mqtt.client as mqtt
 
+
+import os
+
 class DisasterSensorSimulator:
     def __init__(self):
         self.is_running = False
@@ -22,10 +25,12 @@ class DisasterSensorSimulator:
         self.TOPIC = "smart/disaster/detection"
         self.CLIENT_ID = "sensor-client"
         
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        
         # Certificate paths
-        self.CA_PATH = "AmazonRootCA1.pem"
-        self.CERT_PATH = "certificate.pem.crt"
-        self.KEY_PATH = "private.pem.key"
+        self.CA_PATH = os.path.join(base_dir, "AmazonRootCA1.pem")
+        self.CERT_PATH = os.path.join(base_dir, "certificate.pem.crt")
+        self.KEY_PATH = os.path.join(base_dir, "private.pem.key")
         
         # Lambda-2 API Gateway URL
         self.LAMBDA_2_URL = "https://6xhiwcxx5j.execute-api.us-east-1.amazonaws.com/default/x24274429-lambda-database-fog"
@@ -225,7 +230,7 @@ class DisasterSensorSimulator:
                 
             except Exception as e:
                 print(f"Error publishing data: {str(e)}")
-                time.sleep(5)
+                time.sleep(7)
         
         print(f"Publishing thread stopped. Total: {publish_count}, Alerts: {alert_count}")
     
